@@ -96,3 +96,14 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #C5A059;
 }
+
+/* Scrollbar hiding utilities for horizontally scrollable containers */
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+

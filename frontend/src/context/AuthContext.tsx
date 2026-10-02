@@ -1,17 +1,30 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import type { User } from "../types";
+import type { User, SubscriptionTier } from "../types";
 import * as authService from "../services/auth";
 import { checkBackendReachable } from "../services/api";
+
+interface PricingModalInfo {
+  targetTier?: SubscriptionTier;
+  featureName?: string;
+}
 
 interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
   isOfflineMode: boolean;
+  subscriptionTier: SubscriptionTier;
+  justUpgradedTier: SubscriptionTier | null;
+  isPricingModalOpen: boolean;
+  pricingModalInfo: PricingModalInfo;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
   loginAsDemo: () => void;
   logout: () => void;
+  updateSubscriptionTier: (tier: SubscriptionTier) => void;
+  openPricingModal: (targetTier?: SubscriptionTier, featureName?: string) => void;
+  closePricingModal: () => void;
+  clearJustUpgradedTier: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +34,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(() => authService.getAccessToken());
   const [loading] = useState<boolean>(false);
   const [isOfflineMode, setIsOfflineMode] = useState<boolean>(false);
+  const [justUpgradedTier, setJustUpgradedTier] = useState<SubscriptionTier | null>(null);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState<boolean>(false);
+  const [pricingModalInfo, setPricingModalInfo] = useState<PricingModalInfo>({});
+
+  const subscriptionTier: SubscriptionTier = (user?.subscription_tier ?? 0) as SubscriptionTier;
 
   useEffect(() => {
     // 1. Authentication Persistence: Check auth_token or user_profile in localStorage on mount
@@ -87,6 +105,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
   };
 
+  const updateSubscriptionTier = (tier: SubscriptionTier) => {
+    const updated = authService.updateUserSubscriptionTier(tier);
+    if (updated) {
+      setUser(updated);
+    } else if (user) {
+      const manualUser = { ...user, subscription_tier: tier };
+      setUser(manualUser);
+      localStorage.setItem("user_profile", JSON.stringify(manualUser));
+      localStorage.setItem("nutrilens_user", JSON.stringify(manualUser));
+    }
+    setJustUpgradedTier(tier);
+    setIsPricingModalOpen(false);
+  };
+
+  const openPricingModal = (targetTier?: SubscriptionTier, featureName?: string) => {
+    setPricingModalInfo({ targetTier, featureName });
+    setIsPricingModalOpen(true);
+  };
+
+  const closePricingModal = () => {
+    setIsPricingModalOpen(false);
+    setPricingModalInfo({});
+  };
+
+  const clearJustUpgradedTier = () => {
+    setJustUpgradedTier(null);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -94,10 +140,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token,
         loading,
         isOfflineMode,
+        subscriptionTier,
+        justUpgradedTier,
+        isPricingModalOpen,
+        pricingModalInfo,
         login,
         register,
         loginAsDemo,
         logout,
+        updateSubscriptionTier,
+        openPricingModal,
+        closePricingModal,
+        clearJustUpgradedTier,
       }}
     >
       {children}

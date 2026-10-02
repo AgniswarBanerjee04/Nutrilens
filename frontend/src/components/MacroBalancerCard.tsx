@@ -132,56 +132,91 @@ export const MacroBalancerCard: React.FC<MacroBalancerCardProps> = ({
         </div>
       </div>
 
-      {/* Remaining Daily Deficits Overview */}
-      <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-2xl bg-[#0A0A0A] border border-[#2A2A2A] text-center">
-          <span className="text-[10px] text-[#888888] uppercase font-medium block">Remaining Energy</span>
-          <span className="text-lg font-serif font-bold text-[#C5A059] font-mono">{deficitCalories}</span>
-          <span className="text-[10px] text-[#888888] block">kcal budget gap</span>
+      {/* Remaining Daily Deficits Overview - Spacious 2x2 Grid with p-6 internal padding */}
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Stat 1: Remaining Energy */}
+        <div className="p-6 rounded-2xl bg-[#0A0A0A] border border-[#2A2A2A] flex flex-col justify-between hover:border-[#C5A059]/30 transition-colors">
+          <div>
+            <span className="text-xs uppercase tracking-widest text-neutral-400 font-medium block mb-2">
+              Remaining Energy
+            </span>
+            <div className="text-2xl sm:text-3xl font-serif font-bold text-[#C5A059] font-mono leading-tight">
+              {deficitCalories} <span className="text-base font-sans font-normal text-neutral-400">kcal</span>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-[#2A2A2A]/50">
+            <span className="text-xs text-neutral-400 block font-sans">
+              Daily caloric deficit gap to target equilibrium
+            </span>
+          </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#0A0A0A] border border-[#2A2A2A] text-center">
-          <span className="text-[10px] text-[#888888] uppercase font-medium block">Protein Deficit</span>
-          <span className="text-lg font-serif font-bold text-[#C5A059] font-mono">
-            {deficitProtein}
-            <span className="text-xs font-normal text-[#888888] ml-0.5">g</span>
-          </span>
-          <span className="text-[10px] text-[#888888] block">needs closing</span>
+        {/* Stat 2: Protein Deficit */}
+        <div className="p-6 rounded-2xl bg-[#0A0A0A] border border-[#2A2A2A] flex flex-col justify-between hover:border-[#C5A059]/30 transition-colors">
+          <div>
+            <span className="text-xs uppercase tracking-widest text-neutral-400 font-medium block mb-2">
+              Protein Deficit
+            </span>
+            <div className="text-2xl sm:text-3xl font-serif font-bold text-[#C5A059] font-mono leading-tight">
+              {deficitProtein} <span className="text-base font-sans font-normal text-neutral-400">g</span>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-[#2A2A2A]/50">
+            <span className="text-xs text-neutral-400 block font-sans">
+              Critical lean amino acid synthesis target
+            </span>
+          </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#0A0A0A] border border-[#2A2A2A] text-center">
-          <span className="text-[10px] text-[#888888] uppercase font-medium block">Carbs Allowance</span>
-          <span className="text-lg font-serif font-bold text-[#78866B] font-mono">
-            {deficitCarbs}
-            <span className="text-xs font-normal text-[#888888] ml-0.5">g</span>
-          </span>
-          <span className="text-[10px] text-[#888888] block">complex preferred</span>
+        {/* Stat 3: Carbs Allowance */}
+        <div className="p-6 rounded-2xl bg-[#0A0A0A] border border-[#2A2A2A] flex flex-col justify-between hover:border-[#C5A059]/30 transition-colors">
+          <div>
+            <span className="text-xs uppercase tracking-widest text-neutral-400 font-medium block mb-2">
+              Carbs Allowance
+            </span>
+            <div className="text-2xl sm:text-3xl font-serif font-bold text-[#C5A059] font-mono leading-tight">
+              {deficitCarbs} <span className="text-base font-sans font-normal text-neutral-400">g</span>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-[#2A2A2A]/50">
+            <span className="text-xs text-neutral-400 block font-sans">
+              Complex whole millets & slow starches preferred
+            </span>
+          </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#0A0A0A] border border-[#2A2A2A] text-center">
-          <span className="text-[10px] text-[#888888] uppercase font-medium block">Lipid Room</span>
-          <span className="text-lg font-serif font-bold text-[#B58A55] font-mono">
-            {deficitFats}
-            <span className="text-xs font-normal text-[#888888] ml-0.5">g</span>
-          </span>
-          <span className="text-[10px] text-[#888888] block">healthy fats remaining</span>
+        {/* Stat 4: Lipid Room */}
+        <div className="p-6 rounded-2xl bg-[#0A0A0A] border border-[#2A2A2A] flex flex-col justify-between hover:border-[#C5A059]/30 transition-colors">
+          <div>
+            <span className="text-xs uppercase tracking-widest text-neutral-400 font-medium block mb-2">
+              Lipid Room
+            </span>
+            <div className="text-2xl sm:text-3xl font-serif font-bold text-[#C5A059] font-mono leading-tight">
+              {deficitFats} <span className="text-base font-sans font-normal text-neutral-400">g</span>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-[#2A2A2A]/50">
+            <span className="text-xs text-neutral-400 block font-sans">
+              Healthy mono/polyunsaturated lipids remaining
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Culinary Preference Selector & Trigger Button */}
-      <div className="mt-5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#0A0A0A] border border-[#2A2A2A]">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          <span className="text-xs font-medium text-[#888888] flex-shrink-0 mr-1">
+      {/* Culinary Preference Selector & Action Trigger - Generous Top Margin (mt-8) & Horizontally Scrollable Container */}
+      <div className="mt-8 pt-6 border-t border-[#2A2A2A] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-5">
+        <div className="flex items-center gap-3 overflow-x-auto hide-scrollbar flex-nowrap py-1">
+          <span className="text-xs uppercase tracking-widest text-neutral-400 font-medium flex-shrink-0">
             Culinary Focus:
           </span>
           {DIETARY_OPTIONS.map((opt) => (
             <button
               key={opt.id}
               onClick={() => setDietaryPref(opt.id)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+              className={`px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0 transition-all ${
                 dietaryPref === opt.id
                   ? "bg-[#C5A059] text-[#0A0A0A] font-semibold shadow-gold-glow"
-                  : "bg-[#141414] text-[#888888] hover:text-[#F5F5F0] border border-[#2A2A2A]"
+                  : "bg-[#0A0A0A] text-neutral-400 hover:text-[#F5F5F0] border border-[#2A2A2A] hover:border-[#C5A059]/40"
               }`}
             >
               {opt.label}
@@ -193,7 +228,7 @@ export const MacroBalancerCard: React.FC<MacroBalancerCardProps> = ({
         <button
           onClick={handleGenerateRecipe}
           disabled={isLoading}
-          className="btn-pill-gold flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-semibold shadow-gold-glow disabled:opacity-50"
+          className="btn-pill-gold flex items-center justify-center gap-2 px-6 py-2.5 text-xs font-semibold shadow-gold-glow disabled:opacity-50 whitespace-nowrap shrink-0"
         >
           {isLoading ? (
             <>

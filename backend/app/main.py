@@ -45,6 +45,10 @@ async def lifespan(app: FastAPI):
                 conn.execute(text("ALTER TABLE meals ADD COLUMN sodium_mg FLOAT DEFAULT 0.0"))
             if "net_carbs" not in existing_cols:
                 conn.execute(text("ALTER TABLE meals ADD COLUMN net_carbs FLOAT DEFAULT 0.0"))
+
+            user_cols = [row[1] for row in conn.execute(text("PRAGMA table_info(users)"))]
+            if "subscription_tier" not in user_cols:
+                conn.execute(text("ALTER TABLE users ADD COLUMN subscription_tier INTEGER DEFAULT 0"))
     except Exception as e:
         # Tables might not be created yet or already updated
         pass

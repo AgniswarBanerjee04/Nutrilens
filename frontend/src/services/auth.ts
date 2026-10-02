@@ -9,7 +9,7 @@
  */
 
 import { API_BASE_URL, checkBackendReachable } from "./api";
-import type { User, AuthResponse, UserGoals, Meal } from "../types";
+import type { User, AuthResponse, UserGoals, Meal, SubscriptionTier } from "../types";
 
 const TOKEN_KEY = "auth_token";
 const CURRENT_USER_KEY = "user_profile";
@@ -25,6 +25,7 @@ interface MockUserEntry {
   password: string;
   name: string;
   created_at: string;
+  subscription_tier?: SubscriptionTier;
 }
 
 /**
@@ -109,6 +110,7 @@ export async function register(
     password: password,
     name: trimmedName,
     created_at: new Date().toISOString(),
+    subscription_tier: 0,
   };
 
   mockUsers.push(newMockUser);
@@ -119,6 +121,7 @@ export async function register(
     email: newMockUser.email,
     name: newMockUser.name,
     created_at: newMockUser.created_at,
+    subscription_tier: 0,
   };
 
   const mockToken = `nutrilens_local_jwt_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -185,6 +188,7 @@ export async function login(email: string, password: string): Promise<AuthRespon
     email: foundUser.email,
     name: foundUser.name,
     created_at: foundUser.created_at,
+    subscription_tier: foundUser.subscription_tier ?? 0,
   };
 
   const mockToken = `nutrilens_local_jwt_${Date.now()}`;
@@ -202,11 +206,16 @@ export async function login(email: string, password: string): Promise<AuthRespon
  * Instant Demo Access: Bypasses credentials, initializes rich Indian culinary sample data
  */
 export function loginAsDemo(): AuthResponse {
+  // Check if demo user already has a saved tier in local storage
+  const existingUser = getCurrentUser();
+  const savedTier = (existingUser?.subscription_tier ?? 0) as SubscriptionTier;
+
   const demoUser: User = {
     id: 9999,
     email: "alexander@nutrilens.ai",
     name: "Alexander Cole",
     created_at: new Date().toISOString(),
+    subscription_tier: savedTier,
   };
 
   const demoToken = `nutrilens_demo_token_${Date.now()}`;
@@ -314,4 +323,37 @@ export function getCurrentUser(): User | null {
  */
 export function getAccessToken(): string | null {
   return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY);
+}
+
+/**
+ * Updates the user's subscription tier in localStorage and session
+ */
+export function updateUserSubscriptionTier(tier: SubscriptionTier): User | null {
+  const current = getCurrentUser();
+  if (!current) return null;
+
+  const updated: User = {
+    ...current,
+    subscription_tier: tier,
+  };
+
+  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(updated));
+  localStorage.setItem(LEGACY_USER_KEY, JSON.stringify(updated));
+
+  // Update in mock users if found
+  try {
+    const raw = localStorage.getItem(MOCK_USERS_KEY);
+    if (raw) {
+      const mockUsers: MockUserEntry[] = JSON.parse(raw);
+      const idx = mockUsers.findIndex((u) => u.id === current.id || u.email === current.email);
+      if (idx !== -1) {
+        mockUsers[idx].subscription_tier = tier;
+        saveMockUsers(mockUsers);
+      }
+    }
+  } catch (err) {
+    console.error("Error updating mock user tier:", err);
+  }
+
+  return updated;
 }

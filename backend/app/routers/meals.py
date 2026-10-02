@@ -12,10 +12,17 @@ from app.schemas import (
     MealCreate,
     MealOut,
     MacroBalancerRequest,
-    MacroBalancerResponse
+    MacroBalancerResponse,
+    AICoachChatRequest,
+    AICoachChatResponse,
+    SubscriptionTierUpdate
 )
 from app.auth import get_current_user
-from app.services.gemini import analyze_meal_image, generate_macro_balanced_recipe
+from app.services.gemini import (
+    analyze_meal_image,
+    generate_macro_balanced_recipe,
+    ask_ai_food_trainer
+)
 
 router = APIRouter(prefix="/api", tags=["Meals & AI Metabolic Engine"])
 
@@ -298,3 +305,83 @@ async def balance_next_meal(
         recipe=recipe,
         message="Generated custom balanced metabolic dinner recipe matching remaining deficits."
     )
+
+
+@router.post("/ai-coach/chat", response_model=AICoachChatResponse, summary="Chat with AI Personal Food Trainer")
+async def ai_coach_chat(
+    payload: AICoachChatRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Elite Personal Food Trainer chat powered by Gemini API.
+    Injects user's logged meals and sleep data into the system prompt to deliver
+    precise, actionable metabolic meal recommendations.
+    """
+    # 1. Fetch today's logged meals
+    all_meals = (
+        db.query(Meal)
+        .filter(Meal.user_id == current_user.id)
+        .order_by(Meal.timestamp.desc())
+        .all()
+    )
+
+    now = datetime.now()
+    def _is_today(ts):
+        if not ts:
+            return False
+        if hasattr(ts, "date"):
+            return ts.date() == now.date()
+        try:
+            return datetime.fromisoformat(str(ts).replace("Z", "+00:00")).date() == now.date()
+        except Exception:
+            return False
+
+    today_meals_objs = [m for m in all_meals if _is_today(m.timestamp)]
+    if not today_meals_objs and all_meals:
+        today_meals_objs = all_meals[:5]
+
+    meals_data = [
+        {
+            "food_summary": m.food_summary,
+            "calories": m.calories,
+            "protein": m.protein,
+            "carbs": m.carbs,
+            "fats": m.fats,
+            "glycemic_impact": m.glycemic_impact or m.glycemic_index_rating or "Medium",
+            "hidden_fat_estimate_g": m.hidden_fat_estimate_g or 0.0,
+        }
+        for m in today_meals_objs
+    ]
+
+    tier = payload.subscription_tier or getattr(current_user, "subscription_tier", 1) or 1
+    history_dicts = [{"sender": h.sender, "text": h.text} for h in (payload.history or [])]
+
+    result = await ask_ai_food_trainer(
+        message=payload.message,
+        today_meals=meals_data,
+        sleep_hours=payload.sleep_hours,
+        sleep_quality=payload.sleep_quality,
+        subscription_tier=tier,
+        history=history_dicts
+    )
+
+    return AICoachChatResponse(
+        reply=result["reply"],
+        suggested_meal=result.get("suggested_meal"),
+        metabolic_focus=result.get("metabolic_focus"),
+        glycemic_recommendation=result.get("glycemic_recommendation")
+    )
+
+
+@router.put("/user/subscription", summary="Update user subscription tier")
+def update_subscription(
+    payload: SubscriptionTierUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Updates user subscription tier (0 = Free, 1 = Plus, 2 = Pro, 3 = Clinical)."""
+    current_user.subscription_tier = payload.subscription_tier
+    db.commit()
+    db.refresh(current_user)
+    return {"status": "success", "subscription_tier": current_user.subscription_tier}

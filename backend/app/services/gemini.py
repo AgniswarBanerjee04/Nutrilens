@@ -320,3 +320,141 @@ async def generate_macro_balanced_recipe(
     except Exception as exc:
         logger.error(f"Gemini recipe generation error: {exc}", exc_info=True)
         return _get_fallback_balanced_recipe(deficit_cals, deficit_p, deficit_c, deficit_f, dietary_preference)
+
+
+def _get_fallback_ai_coach_advice(
+    message: str,
+    today_meals: List[Dict[str, Any]],
+    sleep_hours: Optional[float],
+    sleep_quality: Optional[str],
+    subscription_tier: int = 1
+) -> Dict[str, Any]:
+    """Generates authentic clinical fallback guidance from an elite personal food trainer."""
+    total_cals = sum(float(m.get("calories", 0)) for m in today_meals)
+    total_p = sum(float(m.get("protein", 0)) for m in today_meals)
+    total_c = sum(float(m.get("carbs", 0)) for m in today_meals)
+    total_f = sum(float(m.get("fats", 0)) for m in today_meals)
+
+    hours = sleep_hours if sleep_hours is not None else 7.0
+    quality = sleep_quality or "Normal"
+    is_sleep_deprived = hours < 6.0
+
+    if is_sleep_deprived:
+        sleep_warning = (
+            f"⚠️ **Circadian Insulin Resistance & Cravings Alert**: With only {hours:.1f}h of sleep, "
+            "your peripheral GLUT-4 glucose uptake is compromised and ghrelin is elevated by ~20%. "
+            "We must strictly avoid high-GI starches and refined sugars to prevent an aggressive afternoon reactive crash."
+        )
+        suggested_meal = "Clay Oven Tandoori Paneer / Murgh Tikka with Sautéed Moringa Greens & Sprouted Moong Dal"
+        focus = "High Bioavailable Protein + Soluble Viscous Fiber to blunt cortisol-induced glycemic surges."
+        glycemic = "Strict Low GI (Complex cellular matrix)"
+    else:
+        sleep_warning = (
+            f"✅ **Restorative Recovery Registered**: Logged {hours:.1f}h ({quality}). "
+            "Cellular autophagy and baseline insulin sensitivity are operating in an optimal state."
+        )
+        suggested_meal = "Pan-Seared Kasuri Methi Pomfret or Sautéed Paneer Bhurji with Hand-Pressed Jowar Bhakri"
+        focus = "Balanced metabolic distribution: replenishing glycogen with ancient millets and lean amino acids."
+        glycemic = "Low-to-Moderate Low GI"
+
+    clinical_note = ""
+    if subscription_tier >= 3:
+        clinical_note = (
+            "\n\n🔬 **Sleep-Metabolic Correlation Engine (Level 3 Active)**: "
+            f"Compensatory calibration applied for {hours:.1f}h sleep window. Carbohydrate threshold adjusted to "
+            f"{max(20, round(total_c * 0.75))}g with 12g+ required viscous prebiotic fiber to re-sensitize insulin receptors."
+        )
+
+    reply = (
+        f"{sleep_warning}\n\n"
+        f"**Metabolic Status Today**:\n"
+        f"• Consumed: {total_cals:.0f} kcal | Protein: {total_p:.0f}g | Carbs: {total_c:.0f}g | Fats: {total_f:.0f}g across {len(today_meals)} logged meals.\n\n"
+        f"**Elite Trainer Prescription for Your Next Meal**:\n"
+        f"1. **Core Recommendation**: {suggested_meal}.\n"
+        f"2. **Metabolic Target**: {focus}.\n"
+        f"3. **Glycemic Strategy**: {glycemic}. Incorporate digestive carminative spices (hing, roasted cumin, grated ginger) to support gut microbiome absorption without spiking blood sugar.{clinical_note}"
+    )
+
+    return {
+        "reply": reply,
+        "suggested_meal": suggested_meal,
+        "metabolic_focus": focus,
+        "glycemic_recommendation": glycemic,
+    }
+
+
+async def ask_ai_food_trainer(
+    message: str,
+    today_meals: List[Dict[str, Any]],
+    sleep_hours: Optional[float] = None,
+    sleep_quality: Optional[str] = None,
+    subscription_tier: int = 1,
+    history: Optional[List[Dict[str, str]]] = None
+) -> Dict[str, Any]:
+    """Consults the AI Personal Food Trainer via Gemini API with the user's logged meals and sleep data."""
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        logger.info("Using high-fidelity clinical AI trainer fallback.")
+        return _get_fallback_ai_coach_advice(message, today_meals, sleep_hours, sleep_quality, subscription_tier)
+
+    # Format meals context
+    meal_lines = []
+    for idx, m in enumerate(today_meals, 1):
+        summary = m.get("food_summary") or "Logged Dish"
+        cals = m.get("calories", 0)
+        p = m.get("protein", 0)
+        c = m.get("carbs", 0)
+        f = m.get("fats", 0)
+        gi = m.get("glycemic_impact") or m.get("glycemic_index_rating") or "Medium"
+        meal_lines.append(f"- Meal {idx}: {summary} ({cals} kcal, {p}g P, {c}g C, {f}g F, GI: {gi})")
+    meals_context = "\n".join(meal_lines) if meal_lines else "No meals logged yet today."
+
+    hours = sleep_hours if sleep_hours is not None else 7.0
+    quality = sleep_quality or "Normal"
+
+    system_instruction = (
+        "You are an elite clinical dietitian. Based on the user's logged meals and sleep debt today, provide precise, actionable advice on what their next meal should be to optimize metabolic health.\n\n"
+        "CLINICAL GUIDELINES:\n"
+        "- If sleep duration is < 6 hours: Warn about acute insulin resistance and elevated ghrelin / sugar cravings. "
+        "Prescribe meals high in bioavailable protein, complex millets or leafy greens with viscous fiber, and strict zero refined carbs.\n"
+        "- Emphasize Michelin-level culinary sophistication (Indian haute cuisine, desi spices, unrefined ancient millets, healthy cooking fats).\n"
+        "- Keep the response concise, authoritative, engaging, and directly applicable for their next plate.\n"
+        f"- User Subscription Tier: Level {subscription_tier} ("
+        + ("Plus - Daily Text Summary" if subscription_tier == 1 else "Pro - Real-time AI Coach" if subscription_tier == 2 else "Clinical - Sleep-Metabolic Correlation Engine")
+        + "). "
+        + ("Actively calculate sleep debt compensatory adjustments for their macros." if subscription_tier >= 3 else "")
+    )
+
+    prompt = (
+        f"{system_instruction}\n\n"
+        f"USER SLEEP DATA:\n"
+        f"- Hours Slept: {hours} hours\n"
+        f"- Sleep Quality: {quality}\n\n"
+        f"TODAY'S LOGGED MEALS:\n"
+        f"{meals_context}\n\n"
+        f"USER INQUIRY:\n"
+        f'"{message}"\n\n'
+        "Provide your precise clinical advice and next meal recommendation."
+    )
+
+    try:
+        import google.generativeai as genai
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel(model_name="gemini-1.5-flash")
+        response = await model.generate_content_async(prompt)
+        reply_text = response.text.strip()
+
+        suggested_meal = "Personalized Low-GI Metabolic Recovery Plate"
+        if "next meal" in reply_text.lower():
+            suggested_meal = "Nutrient-Dense Complex Protein & Millet Plate"
+
+        return {
+            "reply": reply_text,
+            "suggested_meal": suggested_meal,
+            "metabolic_focus": "Insulin Sensitivity & Cellular Energy Optimization",
+            "glycemic_recommendation": "Low-to-Medium Controlled Glycemic Impact",
+        }
+    except Exception as exc:
+        logger.error(f"Error invoking Gemini AI Food Trainer: {exc}", exc_info=True)
+        return _get_fallback_ai_coach_advice(message, today_meals, sleep_hours, sleep_quality, subscription_tier)

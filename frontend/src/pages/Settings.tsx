@@ -11,8 +11,11 @@ import {
   Key,
   CheckCircle2,
   Sparkles,
+  Crown,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import { PricingModal } from "../components/PricingModal";
+import { TierUnlockCelebration } from "../components/TierUnlockCelebration";
 import type { UserGoals } from "../types";
 
 interface SettingsProps {
@@ -26,7 +29,17 @@ export const Settings: React.FC<SettingsProps> = ({
   currentGoals,
   onSaveGoals,
 }) => {
-  const { user, isOfflineMode } = useAuth();
+  const {
+    user,
+    isOfflineMode,
+    subscriptionTier,
+    openPricingModal,
+    isPricingModalOpen,
+    closePricingModal,
+    pricingModalInfo,
+    justUpgradedTier,
+    clearJustUpgradedTier,
+  } = useAuth();
   const [goals, setGoals] = useState<UserGoals>(currentGoals);
   const [isSaved, setIsSaved] = useState(false);
   const [metabolicMode, setMetabolicMode] = useState("Balanced Glycemic Control");
@@ -109,6 +122,60 @@ export const Settings: React.FC<SettingsProps> = ({
             <span className="font-mono text-[11px] truncate">
               Active Token: <strong className="text-[#F5F5F0]">{tokenPreview.slice(0, 36)}...</strong>
             </span>
+          </div>
+        </section>
+
+        {/* Haute Subscription & Tier Protocol Card */}
+        <section className="rounded-3xl p-6 sm:p-7 border border-[#2A2A2A] bg-[#141414] shadow-subtle space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#2A2A2A]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-[#C5A059]/15 border border-[#C5A059]/30 text-[#C5A059] flex items-center justify-center">
+                <Crown className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-base font-serif font-bold text-[#F5F5F0]">Haute Subscription & Clinical Gating</h3>
+                <p className="text-xs text-[#888888]">Manage clinical access to Deep Sleep Tracking and AI Personal Food Trainer</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => openPricingModal()}
+              className="btn-pill-gold px-4 py-1.5 text-xs font-semibold shadow-gold-glow flex items-center gap-1.5 self-start sm:self-auto"
+            >
+              <Crown className="w-3.5 h-3.5" />
+              <span>Modify Protocol</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="p-3.5 rounded-2xl bg-[#0A0A0A] border border-[#2A2A2A]">
+              <span className="text-[10px] text-[#888888] block uppercase font-medium">Current Status</span>
+              <span className="text-sm font-serif font-bold text-[#C5A059] mt-0.5 block">
+                {subscriptionTier === 0
+                  ? "Free Tier"
+                  : subscriptionTier === 1
+                  ? "Level 1: Plus"
+                  : subscriptionTier === 2
+                  ? "Level 2: Pro Connoisseur"
+                  : "Level 3: Clinical Haute"}
+              </span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-[#0A0A0A] border border-[#2A2A2A]">
+              <span className="text-[10px] text-[#888888] block uppercase font-medium">Deep Sleep Telemetry</span>
+              <span className={`text-sm font-medium mt-0.5 block ${subscriptionTier >= 2 ? "text-[#78866B]" : "text-[#888888]"}`}>
+                {subscriptionTier >= 2 ? "✓ Unlocked & Tracking" : "Locked (Level 2+ Required)"}
+              </span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-[#0A0A0A] border border-[#2A2A2A]">
+              <span className="text-[10px] text-[#888888] block uppercase font-medium">AI Food Trainer</span>
+              <span className={`text-sm font-medium mt-0.5 block ${subscriptionTier >= 1 ? "text-[#78866B]" : "text-[#888888]"}`}>
+                {subscriptionTier >= 2
+                  ? "✓ Real-time Chat Coach"
+                  : subscriptionTier === 1
+                  ? "✓ Daily Text Summaries"
+                  : "Locked (Level 1+ Required)"}
+              </span>
+            </div>
           </div>
         </section>
 
@@ -253,6 +320,20 @@ export const Settings: React.FC<SettingsProps> = ({
           </form>
         </section>
       </main>
+
+      {/* Pricing Modal & Simulated Upgrade Flow */}
+      <PricingModal
+        isOpen={isPricingModalOpen}
+        onClose={closePricingModal}
+        targetTier={pricingModalInfo.targetTier}
+        featureName={pricingModalInfo.featureName}
+      />
+
+      {/* Tier Upgrade Framer Motion Pulse Animation */}
+      <TierUnlockCelebration
+        tier={justUpgradedTier}
+        onClose={clearJustUpgradedTier}
+      />
     </div>
   );
 };

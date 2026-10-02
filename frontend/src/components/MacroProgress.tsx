@@ -64,15 +64,24 @@ export const MacroProgress: React.FC<MacroProgressProps> = ({
   }, []);
 
   const fastingStats = useMemo(() => {
-    let elapsedMs = 0;
-    if (lastMealTimestamp) {
-      const lastTime = new Date(lastMealTimestamp).getTime();
-      elapsedMs = Math.max(0, now.getTime() - lastTime);
-    } else {
-      // If no meal logged yet today, default to an authentic overnight fast of 13.5 hours
-      elapsedMs = 13.5 * 3600 * 1000;
+    if (!lastMealTimestamp) {
+      return {
+        hasActiveFast: false,
+        elapsedHours: 0,
+        formattedTime: "--",
+        hours: 0,
+        minutes: 0,
+        progress: 0,
+        isFatBurning: false,
+        isGoalReached: false,
+        stateTitle: "Awaiting First Meal",
+        stateBadge: "Fast Inactive",
+        description: "Log your first meal to initiate circadian fasting telemetry",
+      };
     }
 
+    const lastTime = new Date(lastMealTimestamp).getTime();
+    const elapsedMs = Math.max(0, now.getTime() - lastTime);
     const elapsedHours = elapsedMs / (3600 * 1000);
     const hours = Math.floor(elapsedHours);
     const minutes = Math.floor((elapsedHours - hours) * 60);
@@ -82,7 +91,20 @@ export const MacroProgress: React.FC<MacroProgressProps> = ({
     const isFatBurning = elapsedHours >= 12;
     const isGoalReached = elapsedHours >= 14;
 
+    const stateTitle = isGoalReached
+      ? "Autophagy Window Active"
+      : isFatBurning
+      ? "Ketogenic Shift (~12h+)"
+      : "Circadian Depletion";
+
+    const stateBadge = isGoalReached
+      ? "14h Achieved"
+      : isFatBurning
+      ? "Fat Burning State"
+      : "Fasting Active";
+
     return {
+      hasActiveFast: true,
       elapsedHours,
       formattedTime: `${hours}h ${minutes}m`,
       hours,
@@ -90,13 +112,18 @@ export const MacroProgress: React.FC<MacroProgressProps> = ({
       progress,
       isFatBurning,
       isGoalReached,
+      stateTitle,
+      stateBadge,
+      description: "Time elapsed since last logged meal",
     };
   }, [lastMealTimestamp, now]);
 
   const fastingStrokeDashoffset = circumference - fastingStats.progress * circumference;
 
   // Ring styling: subtle glowing ash-gray (#555555) that turns champagne gold (#C5A059) when 14h is reached
-  const fastingRingColor = fastingStats.isGoalReached
+  const fastingRingColor = !fastingStats.hasActiveFast
+    ? "#2A2A2A"
+    : fastingStats.isGoalReached
     ? "#C5A059"
     : fastingStats.isFatBurning
     ? "#C5A059"
@@ -228,7 +255,7 @@ export const MacroProgress: React.FC<MacroProgressProps> = ({
                     {fastingStats.formattedTime}
                   </span>
                   <span className="text-[9px] text-[#888888] uppercase tracking-widest font-mono">
-                    / 14h goal
+                    {fastingStats.hasActiveFast ? "/ 14h goal" : "Inactive"}
                   </span>
                 </div>
               </div>
@@ -237,29 +264,25 @@ export const MacroProgress: React.FC<MacroProgressProps> = ({
                 <div className="flex items-center gap-1.5 mb-1 flex-wrap">
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#2A2A2A] text-[#888888] text-[11px] font-mono">
                     <Clock className="w-3 h-3 text-[#C5A059]" />
-                    Fasting Window
+                    {fastingStats.hasActiveFast ? "Fasting Window" : "Fast Inactive"}
                   </span>
                   {/* Fat Burning State Badge (pulses softly if 12+ hours) */}
-                  {fastingStats.isFatBurning && (
+                  {fastingStats.hasActiveFast && fastingStats.isFatBurning && (
                     <motion.span
                       animate={{ opacity: [0.85, 1, 0.85] }}
                       transition={{ repeat: Infinity, duration: 2 }}
                       className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#C5A059]/20 border border-[#C5A059]/40 text-[#C5A059] text-[10px] font-semibold"
                     >
                       <Sparkles className="w-2.5 h-2.5" />
-                      {fastingStats.isGoalReached ? "14h Achieved" : "Fat Burning State"}
+                      {fastingStats.stateBadge}
                     </motion.span>
                   )}
                 </div>
                 <h4 className="text-base font-serif font-bold text-[#F5F5F0] tracking-tight">
-                  {fastingStats.isGoalReached
-                    ? "Autophagy Window Active"
-                    : fastingStats.isFatBurning
-                    ? "Ketogenic Shift (~12h+)"
-                    : "Circadian Depletion"}
+                  {fastingStats.stateTitle}
                 </h4>
                 <p className="text-[11px] text-[#888888] font-sans">
-                  Time elapsed since last logged meal
+                  {fastingStats.description}
                 </p>
               </div>
             </div>

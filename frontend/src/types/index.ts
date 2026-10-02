@@ -1,8 +1,36 @@
+export type SubscriptionTier = 0 | 1 | 2 | 3; // 0 = Free, 1 = Plus, 2 = Pro, 3 = Clinical
+
 export interface User {
   id: number;
   email: string;
   name: string;
   created_at?: string;
+  subscription_tier?: SubscriptionTier;
+}
+
+export interface SleepData {
+  hours_slept: number;
+  deep_sleep_hours?: number;
+  sleep_quality: "Restorative" | "Normal" | "Fragmented";
+  autophagy_score?: number; // 0-100
+  notes?: string;
+  logged_at?: string;
+}
+
+export interface AICoachMessage {
+  id: string;
+  sender: "user" | "coach";
+  text: string;
+  timestamp: string;
+  suggested_meal?: string;
+  metabolic_focus?: string;
+}
+
+export interface AICoachResponse {
+  reply: string;
+  suggested_meal?: string;
+  metabolic_focus?: string;
+  glycemic_recommendation?: string;
 }
 
 export interface UserGoals {

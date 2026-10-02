@@ -4,20 +4,36 @@ import { useAuth } from "../context/AuthContext";
 import { Navbar } from "../components/Navbar";
 import { MacroProgress } from "../components/MacroProgress";
 import { EnergyCurveChart } from "../components/EnergyCurveChart";
+import { DeepSleepWidget } from "../components/DeepSleepWidget";
 import { MacroBalancerCard } from "../components/MacroBalancerCard";
 import { MealHistory } from "../components/MealHistory";
 import { SnapMealModal } from "../components/SnapMealModal";
 import { CameraModal } from "../components/CameraModal";
 import { GoalModal } from "../components/GoalModal";
+import { AICoachDrawer, AICoachFAB } from "../components/AICoachDrawer";
+import { PricingModal } from "../components/PricingModal";
+import { TierUnlockCelebration } from "../components/TierUnlockCelebration";
+import { SleepTrackingModal } from "../components/SleepTrackingModal";
+import { BottomNav } from "../components/BottomNav";
 import { getMeals, createMeal, deleteMeal, getUserGoals, saveUserGoals } from "../services/mealService";
-import type { Meal, UserGoals } from "../types";
+import { getSleepData, saveSleepData, getDefaultSleepData } from "../services/sleepService";
+import type { Meal, UserGoals, SleepData } from "../types";
 
 interface DashboardProps {
   onOpenSettings?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings }) => {
-  const { user } = useAuth();
+  const {
+    user,
+    isPricingModalOpen,
+    pricingModalInfo,
+    openPricingModal,
+    closePricingModal,
+    justUpgradedTier,
+    clearJustUpgradedTier,
+  } = useAuth();
+
   const [meals, setMeals] = useState<Meal[]>([]);
   const [goals, setGoals] = useState<UserGoals>({
     target_calories: 2200,
@@ -25,10 +41,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings }) => {
     target_carbs: 210,
     target_fats: 65,
   });
+  const [sleepData, setSleepData] = useState<SleepData>(() =>
+    user ? getSleepData(user.id) : getDefaultSleepData()
+  );
   const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
   const [isSnapModalOpen, setIsSnapModalOpen] = useState(false);
   const [capturedFile, setCapturedFile] = useState<File | null>(null);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [isCoachDrawerOpen, setIsCoachDrawerOpen] = useState(false);
+  const [isSleepModalOpen, setIsSleepModalOpen] = useState(false);
   const [, setLoading] = useState(true);
 
   // Load user data on mount
@@ -43,6 +64,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings }) => {
         ]);
         setMeals(fetchedMeals);
         setGoals(fetchedGoals);
+        setSleepData(getSleepData(user.id));
       } catch (err) {
         console.error("Failed to load dashboard data:", err);
       } finally {
@@ -51,6 +73,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings }) => {
     }
     loadData();
   }, [user]);
+
+  const handleSaveSleep = (data: Partial<SleepData>) => {
+    if (!user) return;
+    const updated = saveSleepData(user.id, data);
+    setSleepData(updated);
+  };
 
   // Aggregate consumed macros including clinical metabolic metrics
   const consumed = meals.reduce(
@@ -116,11 +144,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings }) => {
         onOpenSnapModal={() => setIsCameraModalOpen(true)}
         onOpenGoalsModal={() => setIsGoalModalOpen(true)}
         onOpenSettings={onOpenSettings}
+        onOpenSleepModal={() => setIsSleepModalOpen(true)}
+        onOpenAICoach={() => setIsCoachDrawerOpen(true)}
         lastMealTimestamp={lastMealTimestamp}
       />
 
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 md:pb-12 space-y-8">
         {/* Hero Greeting and Snap Call-to-action */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
@@ -167,8 +197,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings }) => {
           lastMealTimestamp={lastMealTimestamp}
         />
 
-        {/* 4-Hour Post-Meal Metabolic Energy Curve (Line Chart) */}
-        <EnergyCurveChart meals={meals} />
+        {/* Premium Feature: Deep Sleep & Autophagy Tracker (Tier 2+) */}
+        <DeepSleepWidget
+          sleepData={sleepData}
+          onSaveSleep={handleSaveSleep}
+          onOpenPricingModal={() => openPricingModal(2, "Deep Sleep & Autophagy Protocol")}
+        />
+
+        {/* 4-Hour Post-Meal Metabolic Energy Curve (Line Chart) with Sleep-Debt Sensitivity */}
+        <EnergyCurveChart meals={meals} sleepHours={sleepData.hours_slept} />
 
         {/* AI Macro-Balancer Engine */}
         {user && (
@@ -188,15 +225,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ onOpenSettings }) => {
         />
       </main>
 
-      {/* Floating Snap Button on Mobile */}
-      <div className="sm:hidden fixed bottom-6 right-6 z-30">
-        <button
-          onClick={() => setIsCameraModalOpen(true)}
-          className="btn-pill-gold w-14 h-14 rounded-full flex items-center justify-center shadow-gold-glow"
-        >
-          <Camera className="w-6 h-6 text-[#0A0A0A]" />
-        </button>
-      </div>
+      {/* Sleek Glassmorphism Mobile Bottom Navigation Bar (Home, Sleep, Snap FAB, AI Coach) */}
+      <BottomNav
+        onOpenSnapModal={() => setIsCameraModalOpen(true)}
+        onOpenSleepModal={() => setIsSleepModalOpen(true)}
+        onOpenAICoach={() => setIsCoachDrawerOpen(true)}
+      />
+
+      {/* Premium Feature: AI Personal Food Trainer FAB (Tier 1+) */}
+      <AICoachFAB onOpen={() => setIsCoachDrawerOpen(true)} />
+
+      {/* AI Personal Food Trainer Slide-Out Drawer */}
+      <AICoachDrawer
+        isOpen={isCoachDrawerOpen}
+        onClose={() => setIsCoachDrawerOpen(false)}
+        meals={meals}
+        sleepData={sleepData}
+      />
+
+      {/* Tier Selection & Simulated Upgrade Modal */}
+      <PricingModal
+        isOpen={isPricingModalOpen}
+        onClose={closePricingModal}
+        targetTier={pricingModalInfo.targetTier}
+        featureName={pricingModalInfo.featureName}
+      />
+
+      {/* Framer Motion Tier Upgrade Pulse Animation */}
+      <TierUnlockCelebration
+        tier={justUpgradedTier}
+        onClose={clearJustUpgradedTier}
+      />
+
+      {/* Deep Sleep Telemetry Modal */}
+      <SleepTrackingModal
+        isOpen={isSleepModalOpen}
+        onClose={() => setIsSleepModalOpen(false)}
+        sleepData={sleepData}
+        onSaveSleep={handleSaveSleep}
+      />
 
       {/* In-App Live Camera Modal */}
       <CameraModal

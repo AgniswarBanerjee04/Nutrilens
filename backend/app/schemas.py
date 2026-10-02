@@ -22,6 +22,7 @@ class UserOut(BaseModel):
     id: int
     email: EmailStr
     name: str
+    subscription_tier: int = 0
     created_at: datetime
 
     class Config:
@@ -198,4 +199,30 @@ class MacroBalancerResponse(BaseModel):
     deficits: dict
     recipe: Optional[RecipeOut] = None
     message: Optional[str] = None
+
+
+# --- Subscription & AI Food Trainer Schemas ---
+
+class SubscriptionTierUpdate(BaseModel):
+    subscription_tier: int = Field(..., ge=0, le=3)
+
+
+class AICoachChatMessage(BaseModel):
+    sender: str
+    text: str
+
+
+class AICoachChatRequest(BaseModel):
+    message: str
+    history: Optional[List[AICoachChatMessage]] = None
+    sleep_hours: Optional[float] = None
+    sleep_quality: Optional[str] = None
+    subscription_tier: int = 1
+
+
+class AICoachChatResponse(BaseModel):
+    reply: str
+    suggested_meal: Optional[str] = None
+    metabolic_focus: Optional[str] = None
+    glycemic_recommendation: Optional[str] = None
 
